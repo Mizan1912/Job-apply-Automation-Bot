@@ -1,0 +1,21 @@
+{
+     "name": "naukri-bot",
+     "version": "1.0.0",
+     "description": "Naukri Job Application Automation Bot",
+     "main": "src/index.js",
+     "type": "module",
+     "scripts": {
+          "start": "node src/index.js",
+          "run-now": "node src/index.js --run-now",
+          "login": "node src/index.js --login",
+          "init-db": "node src/index.js --init-db",
+          "dashboard": "node src/index.js --dashboard",
+          "apply-now": "node src/index.js --apply-now"
+     },
+     "dependencies": {
+          "dotenv": "^16.4.5",
+          "node-cron": "^3.0.3",
+          "playwright": "^1.49.1",
+          "sqlite3": "^5.1.7"
+     }
+}
