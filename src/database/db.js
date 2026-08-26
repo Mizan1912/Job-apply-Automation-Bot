@@ -170,3 +170,33 @@ export async function initDatabase() {
 
   console.log('[DB] Database tables initialized successfully.');
 }
+
+/**
+ * Fetch all settings from the database as a key-value object.
+ * @returns {Promise<Record<string, string>>}
+ */
+export async function getSettingsOverrides() {
+  try {
+    const rows = await dbAll('SELECT key, value FROM settings');
+    const settings = {};
+    for (const row of rows) {
+      settings[row.key] = row.value;
+    }
+    return settings;
+  } catch (err) {
+    console.error(`[DB] Error fetching settings: ${err.message}`);
+    return {};
+  }
+}
+
+/**
+ * Save a single setting override.
+ * @param {string} key 
+ * @param {string} value 
+ */
+export async function saveSettingOverride(key, value) {
+  await dbRun(
+    'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+    [key, String(value)]
+  );
+}
