@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { getBrowserContext, closeBrowserContext } from './browser/browser.js';
 import { checkLoginStatus, triggerManualLogin } from './browser/naukri.js';
-import { initDatabase, closeDbConnection, dbRun, dbGet } from './database/db.js';
+import { initDatabase, closeDbConnection, dbRun, dbGet, getSettingsOverrides } from './database/db.js';
 import { searchJobsForQuery } from './jobs/search.js';
 import { processAndQueueJobs } from './jobs/queue.js';
 import { runApplicationQueue } from './applications/worker.js';
@@ -10,33 +10,53 @@ import { initScheduler } from './scheduler.js';
 import { startDashboardServer } from './dashboard/server.js';
 
 // Configuration Mapper
-export function getConfig() {
-  const expIds = (process.env.JOB_EXPERIENCE_FILTER_IDS || '0,1').split(',').map(x => parseInt(x.trim(), 10)).filter(x => !isNaN(x));
+export async function getConfig() {
+  const overrides = await getSettingsOverrides();
+
+  // Helper to fallback to process.env
+  const getSetting = (dbKey, envKey, defaultValue = '') => {
+    if (overrides[dbKey] !== undefined && overrides[dbKey] !== null && overrides[dbKey] !== '') {
+      return overrides[dbKey];
+    }
+    return process.env[envKey] || defaultValue;
+  };
+
+  const dbExpIds = getSetting('experience_filter_ids', 'JOB_EXPERIENCE_FILTER_IDS', '0,1');
+  const expIds = dbExpIds.split(',').map(x => parseInt(x.trim(), 10)).filter(x => !isNaN(x));
   const maxExp = expIds.length > 0 ? Math.max(...expIds) : 1;
 
+  const dbKeywords = getSetting('keywords', 'KEYWORDS', '');
+  const keywords = dbKeywords.split(',').map(x => x.trim()).filter(Boolean);
+
+  const dbLocations = getSetting('locations', 'LOCATIONS', '');
+  const locations = dbLocations.split(',').map(x => x.trim()).filter(Boolean);
+
+  const dryRunSetting = getSetting('dry_run', 'DRY_RUN', 'true');
+  const dryRun = dryRunSetting === 'true' || dryRunSetting === '1';
+
   return {
-    dryRun: process.env.DRY_RUN !== 'false', // Default true for safety
-    minDelay: parseInt(process.env.MIN_DELAY_BETWEEN_APPLICATIONS || '10000', 10),
-    maxDelay: parseInt(process.env.MAX_DELAY_BETWEEN_APPLICATIONS || '30000', 10),
-    maxApplicationsPerRun: parseInt(process.env.MAX_APPLICATIONS_PER_RUN || '20', 10),
-    maxApplicationsPerDay: parseInt(process.env.MAX_APPLICATIONS_PER_DAY || '40', 10),
+    dryRun,
+    minDelay: parseInt(getSetting('min_delay', 'MIN_DELAY_BETWEEN_APPLICATIONS', '10000'), 10),
+    maxDelay: parseInt(getSetting('max_delay', 'MAX_DELAY_BETWEEN_APPLICATIONS', '30000'), 10),
+    maxApplicationsPerRun: parseInt(getSetting('max_applications_per_run', 'MAX_APPLICATIONS_PER_RUN', '20'), 10),
+    maxApplicationsPerDay: parseInt(getSetting('max_applications_per_day', 'MAX_APPLICATIONS_PER_DAY', '40'), 10),
     
-    keywords: (process.env.KEYWORDS || '').split(',').map(x => x.trim()).filter(Boolean),
-    locations: (process.env.LOCATIONS || '').split(',').map(x => x.trim()).filter(Boolean),
+    keywords,
+    locations,
     experienceIds: expIds,
     maxExperience: maxExp,
 
     // Personal details
-    name: process.env.MY_NAME || '',
-    email: process.env.MY_EMAIL || '',
-    phone: process.env.MY_PHONE || '',
-    resumePath: process.env.MY_RESUME_PATH || '',
-    location: process.env.MY_LOCATION || '',
-    noticePeriod: process.env.MY_NOTICE_PERIOD || 'Immediate',
-    currentSalary: process.env.MY_CURRENT_SALARY || '0',
-    expectedSalary: process.env.MY_EXPECTED_SALARY || '0',
-    education: process.env.MY_EDUCATION || '',
-    totalExperience: process.env.MY_TOTAL_EXPERIENCE || '0'
+    name: getSetting('my_name', 'MY_NAME', ''),
+    email: getSetting('my_email', 'MY_EMAIL', ''),
+    phone: getSetting('my_phone', 'MY_PHONE', ''),
+    resumePath: getSetting('my_resume_path', 'MY_RESUME_PATH', ''),
+    location: getSetting('my_location', 'MY_LOCATION', ''),
+    noticePeriod: getSetting('my_notice_period', 'MY_NOTICE_PERIOD', 'Immediate'),
+    currentSalary: getSetting('my_current_salary', 'MY_CURRENT_SALARY', '0'),
+    expectedSalary: getSetting('my_expected_salary', 'MY_EXPECTED_SALARY', '0'),
+    education: getSetting('my_education', 'MY_EDUCATION', ''),
+    totalExperience: getSetting('my_total_experience', 'MY_TOTAL_EXPERIENCE', '0')
   };
 }
 
@@ -49,13 +69,7 @@ export function getConfig() {
  * 5. Update Run stats
  */
 export async function executeWorkflow() {
-  const config = getConfig();
-
-  // Load dry_run override from SQLite settings table
-  const drySetting = await dbGet("SELECT value FROM settings WHERE key = 'dry_run'");
-  if (drySetting) {
-    config.dryRun = (drySetting.value === 'true');
-  }
+  const config = await getConfig();
 
   const startTime = new Date().toISOString();
   
@@ -234,12 +248,7 @@ async function main() {
   if (args.includes('--apply-now')) {
     try {
       await initDatabase();
-      const config = getConfig();
-      
-      const drySetting = await dbGet("SELECT value FROM settings WHERE key = 'dry_run'");
-      if (drySetting) {
-        config.dryRun = (drySetting.value === 'true');
-      }
+      const config = await getConfig();
 
       console.log(`\n========================================`);
       console.log(`[Worker] Direct Queue Application Triggered [${config.dryRun ? 'DRY RUN' : 'LIVE'}]`);
@@ -273,7 +282,7 @@ async function main() {
     await initDatabase();
     
     // Start scheduler cron triggers
-    initScheduler();
+    await initScheduler();
 
     // Start background Telegram poller loop
     console.log('[Main] Initializing Telegram response poller (15s interval)...');
@@ -283,9 +292,6 @@ async function main() {
 
     // Launch local Web Dashboard
     await startDashboardServer();
-
-    // Run once immediately on start
-    await executeWorkflow();
   } catch (err) {
     console.error(`[Main] Background engine error: ${err.message}`);
     await closeDbConnection();
