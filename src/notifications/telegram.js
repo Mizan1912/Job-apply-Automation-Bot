@@ -191,8 +191,8 @@ async function saveUserAnswers(applicationId, rawAnswers) {
 
       // Update question status
       await dbRun(
-        "UPDATE application_questions SET status = 'ANSWERED' WHERE id = ?",
-        [q.id]
+        "UPDATE application_questions SET status = 'ANSWERED', answer_text = ? WHERE id = ?",
+        [ansText, q.id]
       );
     }
 

@@ -1,4 +1,7 @@
 import { dbAll } from '../database/db.js';
+import fs from 'fs';
+import path from 'path';
+
 
 /**
  * Normalizes question strings to improve matching consistency.
@@ -81,6 +84,25 @@ export async function getDbAnswersMap() {
  * @returns {Promise<Array<object>>} Array of { questionText, type, selectorInfo, options: [] }
  */
 export async function scrapeFormQuestions(page) {
+  try {
+    const debugData = await page.evaluate(() => {
+      let container = document.querySelector('.chatbot-container, #chatbot, .apply-form, form[name*="apply"], [class*="modal"], [class*="dialog"]');
+      if (!container) container = document.body;
+      return {
+        html: container.outerHTML,
+        url: window.location.href
+      };
+    });
+    const scratchDir = 'C:\\Users\\UNIQUE ENTERPRISES\\.gemini\\antigravity-ide\\brain\\39c5570e-4b99-4097-8011-1a3b5c49330c\\scratch';
+    if (!fs.existsSync(scratchDir)) {
+      fs.mkdirSync(scratchDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(scratchDir, 'chatbot_dom.html'), `<!-- URL: ${debugData.url} -->\n${debugData.html}`);
+    console.log(`[DOM Debug] Dumped chatbot DOM to scratch/chatbot_dom.html`);
+  } catch (err) {
+    console.error(`[DOM Debug] Failed to dump DOM:`, err);
+  }
+
   return await page.evaluate(() => {
     // 1. Identify active questionnaire container (prioritize overlays/dialogs/chatbots)
     let container = document.querySelector('.chatbot-container, #chatbot, .apply-form, form[name*="apply"], [class*="modal"], [class*="dialog"]');
@@ -129,11 +151,85 @@ export async function scrapeFormQuestions(page) {
       ) {
         return true;
       }
-      return false;
     };
 
     // Helper to locate label/question text for an input
     const findLabelForInput = (inputEl) => {
+      // If the input is a radio button, handle it as a radio group
+      if (inputEl.type === 'radio') {
+        const groupName = inputEl.name;
+        const groupElements = Array.from(container.querySelectorAll(`input[name="${groupName}"]`));
+        
+        // 1. Get the list of option texts to exclude them from being identified as the question
+        const optionTexts = new Set(groupElements.map(el => {
+          let text = el.value || '';
+          let sibling = el.nextElementSibling;
+          if (sibling && sibling.innerText) text = sibling.innerText.trim();
+          return text.toLowerCase();
+        }));
+
+        // 2. Find the common ancestor of all radio buttons in the group
+        let ancestor = inputEl.parentElement;
+        while (ancestor && ancestor !== document.body) {
+          const containsAll = groupElements.every(el => ancestor.contains(el));
+          if (containsAll) break;
+          ancestor = ancestor.parentElement;
+        }
+
+        // 3. Search preceding siblings of the ancestor (which would be message bubbles containing the question)
+        let current = ancestor;
+        for (let depth = 0; depth < 5; depth++) {
+          if (!current || current === document.body) break;
+
+          let sibling = current.previousElementSibling;
+          while (sibling) {
+            // Check list items or message bubbles inside the sibling from last-to-first (bottom-up)
+            const bubbles = Array.from(sibling.querySelectorAll('.qText, .question-text, .botMsg, .botItem, li, p, span'));
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+              const text = bubbles[i].innerText ? bubbles[i].innerText.trim() : '';
+              if (text.length > 5 && !optionTexts.has(text.toLowerCase()) && !text.toLowerCase().includes('thank you for showing interest')) {
+                return text;
+              }
+            }
+
+            // Check sibling itself
+            const text = sibling.innerText ? sibling.innerText.trim() : '';
+            if (text.length > 5 && !optionTexts.has(text.toLowerCase()) && !text.toLowerCase().includes('thank you for showing interest')) {
+              return text;
+            }
+
+            sibling = sibling.previousElementSibling;
+          }
+
+          // Check if the current container itself has a title/question element (checking bottom-up)
+          const qEls = Array.from(current.querySelectorAll('.qText, .question-text, .botMsg, .title, h3, h4, span'));
+          for (let i = qEls.length - 1; i >= 0; i--) {
+            const text = qEls[i].innerText ? qEls[i].innerText.trim() : '';
+            if (text.length > 5 && !optionTexts.has(text.toLowerCase()) && !text.toLowerCase().includes('thank you for showing interest')) {
+              return text;
+            }
+          }
+
+          current = current.parentElement;
+        }
+
+        // Fallback: search for last non-option bubble inside the chatbot container
+        const chatbot = document.querySelector('.chatbot-container, #chatbot, .apply-form');
+        if (chatbot) {
+          const bubbles = Array.from(chatbot.querySelectorAll('.qText, .question-text, [class*="bubble"], [class*="message"]'));
+          for (let i = bubbles.length - 1; i >= 0; i--) {
+            const text = bubbles[i].innerText ? bubbles[i].innerText.trim() : '';
+            if (text.length > 5 && !optionTexts.has(text.toLowerCase()) && !text.toLowerCase().includes('thank you for showing interest')) {
+              return text;
+            }
+          }
+        }
+        
+        // Ensure we NEVER fall through to individual option labels
+        return groupName || 'Question';
+      }
+
+      // Standard label lookup for text/select/number inputs
       if (inputEl.id) {
         const label = document.querySelector(`label[for="${inputEl.id}"]`);
         if (label && label.innerText.trim()) return label.innerText.trim();
@@ -142,6 +238,26 @@ export async function scrapeFormQuestions(page) {
       let parent = inputEl.parentElement;
       for (let depth = 0; depth < 5; depth++) {
         if (!parent) break;
+        
+        // Search preceding siblings of the input parent (e.g. bubble text immediately above input text box)
+        let sibling = parent.previousElementSibling;
+        while (sibling) {
+          // Check children bottom-up (useful if sibling is a UL of message bubbles)
+          const bubbles = Array.from(sibling.querySelectorAll('.qText, .question-text, .botMsg, .botItem, li, p, span'));
+          for (let i = bubbles.length - 1; i >= 0; i--) {
+            const text = bubbles[i].innerText ? bubbles[i].innerText.trim() : '';
+            if (text.length > 5 && !text.toLowerCase().includes('thank you for showing interest')) {
+              return text;
+            }
+          }
+
+          const text = sibling.innerText ? sibling.innerText.trim() : '';
+          if (text.length > 5 && !text.toLowerCase().includes('thank you for showing interest')) {
+            return text;
+          }
+          sibling = sibling.previousElementSibling;
+        }
+
         const textElements = parent.querySelectorAll('label, span, p, div.label, div.question-text, .title, .qText');
         for (const el of textElements) {
           if (el !== inputEl && el.innerText.trim().length > 3 && !isGlobalLayoutElement(el)) {

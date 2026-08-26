@@ -43,30 +43,30 @@ export default function StatsCards({ stats }) {
      ];
 
      return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                {cards.map((card, idx) => {
                     const Icon = card.icon;
                     return (
                          <div
                               key={idx}
-                              className={`glass-panel rounded-2xl p-5 border transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between min-h-[140px] relative bg-slate-900/30 ${card.theme} hover:shadow-lg`}
+                              className={`glass-panel rounded-2xl p-6 border transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between min-h-[175px] relative bg-slate-900/30 ${card.theme} hover:shadow-lg`}
                          >
                               <div className="flex items-start justify-between">
-                                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                                   <span className="text-xs uppercase font-bold tracking-wider text-slate-400">
                                         {card.label}
                                    </span>
-                                   <div className={`p-2 rounded-xl border border-white/[0.04] ${card.bg}`}>
-                                        <Icon className={`w-4 h-4 ${card.spin ? 'animate-spin text-cyan-400' :
+                                   <div className={`p-2.5 rounded-xl border border-white/[0.04] bg-slate-950/40`}>
+                                        <Icon className={`w-5 h-5 ${card.spin ? 'animate-spin text-cyan-400' :
                                                   card.badgePulse ? 'animate-pulse' : ''
                                              }`} />
                                    </div>
                               </div>
 
-                              <div className="mt-4 space-y-1">
-                                   <span className="text-2xl font-black font-mono tracking-tight text-white block">
+                              <div className="mt-6 space-y-1.5">
+                                   <span className="text-4xl font-black font-mono tracking-tight text-white block">
                                         {card.value}
                                    </span>
-                                   <p className="text-[9px] text-slate-500 font-medium leading-normal">
+                                   <p className="text-xs text-slate-400 font-medium leading-relaxed">
                                         {card.desc}
                                    </p>
                               </div>

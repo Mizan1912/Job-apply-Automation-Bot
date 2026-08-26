@@ -135,11 +135,19 @@ export async function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       application_id INTEGER NOT NULL,
       question_text TEXT NOT NULL,
-      status TEXT NOT NULL, /* PENDING, ANSWERED */
+      answer_text TEXT,
+      status TEXT NOT NULL, /* PENDING, ANSWERED, AUTO_SOLVED */
       FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
       UNIQUE(application_id, question_text)
     )
   `);
+
+  // Migration: add answer_text column to application_questions if it does not exist
+  try {
+    await dbRun("ALTER TABLE application_questions ADD COLUMN answer_text TEXT");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
 
   // Global answers dictionary
   await dbRun(`

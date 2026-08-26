@@ -259,25 +259,25 @@ export default function App() {
           <div className="flex min-h-screen bg-zinc-950 text-zinc-50 font-sans">
 
                {/* LEFT COLUMN: Vertical Sidebar Panel */}
-               <aside className="w-64 border-r border-zinc-800 bg-zinc-900/30 flex flex-col justify-between flex-shrink-0 select-none">
+               <aside className="w-72 border-r border-zinc-800 bg-zinc-900/30 flex flex-col justify-between flex-shrink-0 select-none">
 
                     {/* Top: Branding and Navigation */}
-                    <div className="p-6 space-y-8">
+                    <div className="p-8 space-y-10">
                          {/* Logo Section */}
-                         <div className="flex items-center gap-3">
-                              <div className="p-2 bg-zinc-800 border border-zinc-700/80 rounded-xl">
-                                   <Bot className="w-5 h-5 text-white" />
+                         <div className="flex items-center gap-3.5">
+                              <div className="p-2.5 bg-zinc-800 border border-zinc-700/80 rounded-xl">
+                                   <Bot className="w-6 h-6 text-white" />
                               </div>
                               <div>
-                                   <h2 className="text-sm font-bold text-zinc-50 tracking-wide font-mono">
+                                   <h2 className="text-base font-extrabold text-zinc-50 tracking-wider font-mono">
                                         N-BOT AUTOMATION
                                    </h2>
-                                   <span className="text-[10px] text-zinc-500 font-medium">v1.2.0 production</span>
+                                   <span className="text-xs text-zinc-400 font-semibold">v1.2.0 production</span>
                               </div>
                          </div>
 
                          {/* Navigation Links */}
-                         <nav className="space-y-1">
+                         <nav className="space-y-2">
                               {navItems.map((item) => {
                                    const Icon = item.icon;
                                    const isActive = activeTab === item.id;
@@ -285,12 +285,12 @@ export default function App() {
                                         <button
                                              key={item.id}
                                              onClick={() => setActiveTab(item.id)}
-                                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${isActive
-                                                       ? 'bg-zinc-800 text-white border-l-2 border-white pl-4'
-                                                       : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
+                                             className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-150 cursor-pointer ${isActive
+                                                       ? 'bg-zinc-800 text-white border-l-2 border-white pl-5 shadow-md'
+                                                       : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/40'
                                                   }`}
                                         >
-                                             <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-zinc-500'}`} />
+                                             <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-zinc-550'}`} />
                                              <span>{item.label}</span>
                                         </button>
                                    );
@@ -299,20 +299,20 @@ export default function App() {
                     </div>
 
                     {/* Bottom: Daemon Info Indicator Panel */}
-                    <div className="p-4 border-t border-zinc-800/80 bg-zinc-950/40 text-[10px] text-zinc-500 space-y-2">
+                    <div className="p-6 border-t border-zinc-800/80 bg-zinc-950/40 text-xs text-zinc-400 space-y-3">
                          <div className="flex items-center justify-between">
-                              <span className="flex items-center gap-1">
-                                   <Globe className="w-3.5 h-3.5 text-zinc-400" />
+                              <span className="flex items-center gap-1.5">
+                                   <Globe className="w-4 h-4 text-zinc-400" />
                                    <span>Host Address:</span>
                               </span>
-                              <span className="font-mono text-zinc-300">port 3000</span>
+                              <span className="font-mono text-sm text-zinc-200">port 3000</span>
                          </div>
                          <div className="flex items-center justify-between">
-                              <span className="flex items-center gap-1">
-                                   <Cpu className="w-3.5 h-3.5 text-zinc-400" />
+                              <span className="flex items-center gap-1.5">
+                                   <Cpu className="w-4 h-4 text-zinc-400" />
                                    <span>Daemon Engine:</span>
                               </span>
-                              <span className="font-mono text-zinc-300 uppercase">
+                              <span className="font-mono text-sm text-zinc-200 uppercase font-bold">
                                    {stats.dryRun ? 'Simulator' : 'Live Agent'}
                               </span>
                          </div>
@@ -321,7 +321,7 @@ export default function App() {
                </aside>
 
                {/* RIGHT COLUMN: Client Contents Pane */}
-               <main className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+               <main className="flex-1 p-10 overflow-y-auto max-w-7xl mx-auto w-full">
                     {/* Consolidated SaaS Header with trigger buttons */}
                     <Header
                          title={getHeaderTitle()}

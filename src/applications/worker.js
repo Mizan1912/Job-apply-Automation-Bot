@@ -93,6 +93,9 @@ export async function runApplicationQueue(config) {
     const timestamp = new Date().toISOString();
     await dbRun("UPDATE applications SET status = 'APPLYING', updated_at = ? WHERE id = ?", [timestamp, app.id]);
 
+    // Clear previous questions to ensure a clean slate for the new run
+    await dbRun("DELETE FROM application_questions WHERE application_id = ?", [app.id]);
+
     const result = await applyToJob(page, app, config);
 
     // Write-back status to DB

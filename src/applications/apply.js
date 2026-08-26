@@ -142,6 +142,18 @@ export async function applyToJob(page, application, config) {
       for (const action of solvePlan) {
         await fillQuestionValue(page, action.questionText, action.answerText);
         answeredQuestionsSet.add(action.questionText);
+
+        // Log the auto-solved question & answer to the database
+        await dbRun(
+          `INSERT INTO application_questions (application_id, question_text, answer_text, status) 
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(application_id, question_text) DO UPDATE SET 
+             answer_text = excluded.answer_text, 
+             status = excluded.status`,
+          [application.id, action.questionText, action.answerText, 'AUTO_SOLVED']
+        ).catch(err => {
+          console.error(`[Apply] Failed to log auto-solved question: ${err.message}`);
+        });
       }
       
       // Submit/Next step click

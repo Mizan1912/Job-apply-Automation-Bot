@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import { getBrowserContext, closeBrowserContext } from './browser/browser.js';
 import { checkLoginStatus, triggerManualLogin } from './browser/naukri.js';
 import { initDatabase, closeDbConnection, dbRun, dbGet, getSettingsOverrides } from './database/db.js';
@@ -299,7 +301,7 @@ async function main() {
 }
 
 // Only execute main if launched directly
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   main().catch(err => {
     console.error('[Main] Critical process crash:', err);
     process.exit(1);

@@ -97,14 +97,12 @@ export async function startDashboardServer() {
           ORDER BY a.updated_at DESC
         `);
 
-        // Attach pending questions detail mapping
+        // Attach questionnaire logs (all pending, answered, and auto-solved questions)
         for (const app of apps) {
-          if (app.status === 'NEEDS_USER_INPUT') {
-            app.questions = await dbAll(
-              "SELECT id, question_text FROM application_questions WHERE application_id = ? AND status = 'PENDING'",
-              [app.application_id]
-            );
-          }
+          app.questions = await dbAll(
+            "SELECT id, question_text, answer_text, status FROM application_questions WHERE application_id = ? ORDER BY id ASC",
+            [app.application_id]
+          );
         }
 
         sendJson(apps);
@@ -225,8 +223,8 @@ export async function startDashboardServer() {
 
             // Update specific application question
             await dbRun(
-              "UPDATE application_questions SET status = 'ANSWERED' WHERE id = ?",
-              [item.questionId]
+              "UPDATE application_questions SET status = 'ANSWERED', answer_text = ? WHERE id = ?",
+              [item.answerText, item.questionId]
             );
           }
 
@@ -262,6 +260,9 @@ export async function startDashboardServer() {
             "UPDATE applications SET status = 'QUEUED', error_message = NULL, updated_at = ? WHERE id = ?",
             [new Date().toISOString(), applicationId]
           );
+
+          // Clear old questions on requeue so the interface doesn't render stale questions
+          await dbRun("DELETE FROM application_questions WHERE application_id = ?", [applicationId]);
 
           sendJson({ success: true });
         } catch (err) {
@@ -371,7 +372,7 @@ export async function startDashboardServer() {
 }
 
 // Enable direct run
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   startDashboardServer().catch(err => {
     console.error('[Dashboard] Crash starting server:', err);
   });
