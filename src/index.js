@@ -42,6 +42,7 @@ export async function getConfig() {
     maxDelay: parseInt(getSetting('max_delay', 'MAX_DELAY_BETWEEN_APPLICATIONS', '30000'), 10),
     maxApplicationsPerRun: parseInt(getSetting('max_applications_per_run', 'MAX_APPLICATIONS_PER_RUN', '20'), 10),
     maxApplicationsPerDay: parseInt(getSetting('max_applications_per_day', 'MAX_APPLICATIONS_PER_DAY', '40'), 10),
+    reallowDuplicateApplyDays: parseInt(getSetting('reallow_duplicate_apply_days', 'REALLOW_DUPLICATE_APPLY_DAYS', '30'), 10),
     
     keywords,
     locations,

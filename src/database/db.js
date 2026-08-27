@@ -149,6 +149,20 @@ export async function initDatabase() {
     // Ignore error if column already exists
   }
 
+  // Migration: add question_type column to application_questions if it does not exist
+  try {
+    await dbRun("ALTER TABLE application_questions ADD COLUMN question_type TEXT");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
+
+  // Migration: add options column to application_questions if it does not exist
+  try {
+    await dbRun("ALTER TABLE application_questions ADD COLUMN options TEXT");
+  } catch (err) {
+    // Ignore error if column already exists
+  }
+
   // Global answers dictionary
   await dbRun(`
     CREATE TABLE IF NOT EXISTS answers (
