@@ -122,12 +122,16 @@ export async function applyToJob(page, application, config) {
         if (ans !== null && ans !== undefined) {
           solvePlan.push({ questionText: q.questionText, answerText: ans });
         } else {
-          unansweredQuestions.push(q.questionText);
+          unansweredQuestions.push({
+            questionText: q.questionText,
+            type: q.type || 'text',
+            options: q.options || null
+          });
         }
       }
       
       if (unansweredQuestions.length > 0) {
-        console.log(`[Apply] Script cannot auto-solve all fields. Pending inputs:`, unansweredQuestions);
+        console.log(`[Apply] Script cannot auto-solve all fields. Pending inputs:`, unansweredQuestions.map(x => x.questionText));
         return { status: 'NEEDS_USER_INPUT', questions: unansweredQuestions };
       }
       

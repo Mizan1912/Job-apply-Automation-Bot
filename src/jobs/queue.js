@@ -22,6 +22,34 @@ export async function processAndQueueJobs(jobs, config) {
       // 1. Duplicate prevention
       const existing = await dbGet('SELECT id FROM jobs WHERE id = ?', [job.id]);
       if (existing) {
+        const existingApp = await dbGet('SELECT id, status, updated_at FROM applications WHERE job_id = ?', [job.id]);
+        
+        let requeued = false;
+        if (existingApp && config.reallowDuplicateApplyDays !== undefined) {
+          const limitMs = config.reallowDuplicateApplyDays * 24 * 60 * 60 * 1000;
+          const lastUpdated = new Date(existingApp.updated_at).getTime();
+          const ageMs = Date.now() - lastUpdated;
+          
+          if ((existingApp.status === 'APPLIED' || existingApp.status === 'FAILED') && ageMs > limitMs) {
+            console.log(`[Queue] Job ${job.id} has expired (age: ${Math.round(ageMs / (24*60*60*1000))} days). Re-queueing application...`);
+            
+            // Clear any stale questions
+            await dbRun('DELETE FROM application_questions WHERE application_id = ?', [existingApp.id]);
+            
+            // Reset application state
+            await dbRun(
+              "UPDATE applications SET status = 'QUEUED', error_message = NULL, updated_at = ? WHERE id = ?",
+              [timestamp, existingApp.id]
+            );
+            stats.eligible++;
+            requeued = true;
+          }
+        }
+        
+        if (requeued) {
+          continue;
+        }
+
         stats.exists++;
         // Already processed on a previous run, skip entirely.
         continue;

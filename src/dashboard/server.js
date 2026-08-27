@@ -100,7 +100,7 @@ export async function startDashboardServer() {
         // Attach questionnaire logs (all pending, answered, and auto-solved questions)
         for (const app of apps) {
           app.questions = await dbAll(
-            "SELECT id, question_text, answer_text, status FROM application_questions WHERE application_id = ? ORDER BY id ASC",
+            "SELECT id, question_text, question_type, options, answer_text, status FROM application_questions WHERE application_id = ? ORDER BY id ASC",
             [app.application_id]
           );
         }
@@ -153,7 +153,8 @@ export async function startDashboardServer() {
           
           schedule_time_1: dbSettings['schedule_time_1'] !== undefined ? dbSettings['schedule_time_1'] : '10:30',
           schedule_time_2: dbSettings['schedule_time_2'] !== undefined ? dbSettings['schedule_time_2'] : '13:00',
-          schedule_days: dbSettings['schedule_days'] !== undefined ? dbSettings['schedule_days'] : '1-5'
+          schedule_days: dbSettings['schedule_days'] !== undefined ? dbSettings['schedule_days'] : '1-5',
+          reallow_duplicate_apply_days: dbSettings['reallow_duplicate_apply_days'] !== undefined ? dbSettings['reallow_duplicate_apply_days'] : (process.env.REALLOW_DUPLICATE_APPLY_DAYS || '30')
         };
 
         sendJson(responseSettings);

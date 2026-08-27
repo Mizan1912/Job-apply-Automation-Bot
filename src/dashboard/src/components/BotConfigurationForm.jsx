@@ -200,7 +200,7 @@ export default function BotConfigurationForm({
                                    />
                               </div>
                               <div className="space-y-2">
-                                   <label className="block text-sm font-bold text-slate-300">Min/Max Delay (ms)</label>
+                                   <label className="block text-sm font-bold text-slate-350">Min/Max Delay (ms)</label>
                                    <div className="flex gap-2.5">
                                         <input
                                              type="number"
@@ -217,6 +217,16 @@ export default function BotConfigurationForm({
                                              className="w-1/2 bg-slate-900/60 border border-slate-850 focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-slate-200 outline-none transition-all font-mono"
                                         />
                                    </div>
+                              </div>
+                              <div className="space-y-2">
+                                   <label className="block text-sm font-bold text-slate-300">Duplicate Apply Age Limit (Days)</label>
+                                   <input
+                                        type="number"
+                                        placeholder="e.g. 30"
+                                        value={settings.reallow_duplicate_apply_days || ''}
+                                        onChange={(e) => handleSettingChange('reallow_duplicate_apply_days', e.target.value)}
+                                        className="w-full bg-slate-900/60 border border-slate-850 focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20 rounded-xl px-4 py-3 text-sm text-slate-200 outline-none transition-all font-mono"
+                                   />
                               </div>
                          </div>
                     </div>

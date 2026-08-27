@@ -114,16 +114,28 @@ export async function runApplicationQueue(config) {
       console.log(`[Worker] Needs user input. Registering questions.`);
       
       // Save questions in the database
-      for (const qText of result.questions) {
+      for (const q of result.questions) {
         await dbRun(
-          `INSERT OR IGNORE INTO application_questions (application_id, question_text, status) 
-           VALUES (?, ?, ?)`,
-          [app.id, qText, 'PENDING']
+          `INSERT OR IGNORE INTO application_questions (application_id, question_text, question_type, options, status) 
+           VALUES (?, ?, ?, ?, ?)`,
+          [
+            app.id,
+            q.questionText,
+            q.type,
+            q.options ? JSON.stringify(q.options) : null,
+            'PENDING'
+          ]
         );
       }
 
       // Format Telegram question notification
-      const questionsFormatted = result.questions.map((q, idx) => `${idx + 1}. ${q}`).join('\n');
+      const questionsFormatted = result.questions.map((q, idx) => {
+        let optSuffix = '';
+        if (q.options && q.options.length > 0) {
+          optSuffix = ` [Choices: ${q.options.join(', ')}]`;
+        }
+        return `${idx + 1}. ${q.questionText}${optSuffix}`;
+      }).join('\n');
       const message = `❓ *Input Required* \n\n*Company:* ${app.company}\n*Position:* ${app.title}\n*Job Link:* [Open Details](${app.url})\n\nSelect a reply option or send:\n\`/answer ${app.id} your answers split by |\`\n\n*Questions:*\n${questionsFormatted}`;
       await sendTelegramMessage(message);
 

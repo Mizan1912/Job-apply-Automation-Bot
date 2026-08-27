@@ -23,21 +23,77 @@ export default function QuestionnaireSolver({ questions, appId, solverAnswers, h
                </div>
 
                <div className="space-y-4">
-                    {questions.map((q) => (
-                         <div key={q.id} className="space-y-2">
-                              <label className="block text-xs font-semibold text-slate-300">
-                                   {q.question_text}
-                              </label>
-                              <input
-                                   type="text"
-                                   required
-                                   value={solverAnswers[q.id] || ''}
-                                   onChange={(e) => handleSolverChange(appId, q.id, e.target.value)}
-                                   placeholder="Enter answer (e.g. Yes, 2 Years, Immediate)..."
-                                   className="w-full bg-slate-900/60 border border-slate-850 hover:border-slate-800 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 outline-none transition-all placeholder-slate-650"
-                              />
-                         </div>
-                    ))}
+                    {questions.map((q) => {
+                         let parsedOptions = null;
+                         if (q.options) {
+                              try {
+                                   parsedOptions = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+                              } catch (e) {
+                                   console.error("Failed to parse options for question: " + q.id, e);
+                              }
+                         }
+
+                         const isRadio = q.question_type === 'radio' && Array.isArray(parsedOptions) && parsedOptions.length > 0;
+                         const isSelect = q.question_type === 'select' && Array.isArray(parsedOptions) && parsedOptions.length > 0;
+
+                         return (
+                              <div key={q.id} className="space-y-2">
+                                   <div className="flex items-center justify-between">
+                                        <label className="block text-xs font-semibold text-slate-300">
+                                             {q.question_text}
+                                        </label>
+                                        {q.question_type && q.question_type !== 'text' && (
+                                             <span className="text-[9px] bg-slate-800/80 text-amber-400 border border-slate-700/40 px-1.5 py-0.5 rounded uppercase font-mono tracking-wider scale-90">
+                                                  {q.question_type}
+                                             </span>
+                                        )}
+                                   </div>
+
+                                   {isRadio ? (
+                                        <div className="flex flex-wrap gap-1.5 pt-1">
+                                             {parsedOptions.map((opt) => (
+                                                  <button
+                                                       key={opt}
+                                                       type="button"
+                                                       onClick={() => handleSolverChange(appId, q.id, opt)}
+                                                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${solverAnswers[q.id] === opt
+                                                                 ? 'bg-amber-500 text-zinc-950 border-amber-500 shadow-sm shadow-amber-500/10'
+                                                                 : 'bg-zinc-900/60 border-slate-850 hover:border-slate-800 text-slate-350'
+                                                            }`}
+                                                  >
+                                                       {opt}
+                                                  </button>
+                                             ))}
+                                        </div>
+                                   ) : isSelect ? (
+                                        <select
+                                             required
+                                             value={solverAnswers[q.id] || ''}
+                                             onChange={(e) => handleSolverChange(appId, q.id, e.target.value)}
+                                             className="w-full bg-slate-900/60 border border-slate-850 hover:border-slate-800 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 outline-none transition-all"
+                                        >
+                                             <option value="" disabled className="text-slate-500 bg-zinc-950">
+                                                  Select an option...
+                                             </option>
+                                             {parsedOptions.map((opt) => (
+                                                  <option key={opt} value={opt} className="bg-zinc-950 text-slate-200">
+                                                       {opt}
+                                                  </option>
+                                             ))}
+                                        </select>
+                                   ) : (
+                                        <input
+                                             type="text"
+                                             required
+                                             value={solverAnswers[q.id] || ''}
+                                             onChange={(e) => handleSolverChange(appId, q.id, e.target.value)}
+                                             placeholder="Enter answer (e.g. Yes, 2 Years, Immediate)..."
+                                             className="w-full bg-slate-900/60 border border-slate-850 hover:border-slate-800 focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 outline-none transition-all placeholder-slate-650"
+                                        />
+                                   )}
+                              </div>
+                         );
+                    })}
                </div>
 
                <div className="pt-2">
